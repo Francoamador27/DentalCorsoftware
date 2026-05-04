@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@cropper/element-canvas": "^2.0.0",
@@ -59,6 +60,7 @@
     "yet-another-react-lightbox": "^3.25.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.31.0",
     "@eslint/js": "^9.21.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -68,6 +70,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
     "sass-embedded": "^1.90.0",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "wrangler": "^4.80.0"
   }
 }
