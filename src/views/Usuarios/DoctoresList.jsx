@@ -14,6 +14,13 @@ function useDebounced(value, delay = 350) {
   return v;
 }
 
+const ROL_LABELS = { 1: "Admin", 2: "Doctor", 3: "Secretario" };
+const ROL_BADGE = {
+  1: "bg-blue-100 text-blue-800",
+  2: "bg-emerald-100 text-emerald-800",
+  3: "bg-amber-100 text-amber-800",
+};
+
 const fetcher = async ([url, params, token]) => {
   const { data } = await clienteAxios.get(url, {
     params,
@@ -58,6 +65,11 @@ const DoctoresList = () => {
   );
 
   const eliminarDoctor = async (doctor) => {
+    if (Number(doctor.rol) === 1) {
+      alert("No se puede eliminar un usuario con rol Admin.");
+      return;
+    }
+
     const confirmar = await mostrarConfirmacion(
       "¿Estás seguro que deseas eliminar?",
       "Esta acción eliminará el doctor de forma permanente."
@@ -170,6 +182,7 @@ console.log('doctores', doctores)
                 <th className="px-4 py-3 text-left">DNI</th>
                 <th className="px-4 py-3 text-left">Especialidad</th>
                 <th className="px-4 py-3 text-left">Color</th>
+                <th className="px-4 py-3 text-left">Rol</th>
                 <th className="px-4 py-3 text-left">Acción</th>
               </tr>
             </thead>
@@ -191,6 +204,15 @@ console.log('doctores', doctores)
                       <span className="text-gray-400 italic">Sin color</span>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                        ROL_BADGE[Number(doctor.rol)] ?? "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {ROL_LABELS[Number(doctor.rol)] ?? "—"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 flex gap-2">
                     <Link
                       to={`/admin-dash/doctores/${doctor.id}`}
@@ -198,19 +220,21 @@ console.log('doctores', doctores)
                     >
                       Ver más
                     </Link>
-                    <button
-                      onClick={() => eliminarDoctor(doctor)}
-                      className="px-3 py-1 text-sm font-semibold bg-red-600 text-white rounded hover:bg-red-700 transition"
-                      type="button"
-                    >
-                      Eliminar
-                    </button>
+                    {Number(doctor.rol) !== 1 && (
+                      <button
+                        onClick={() => eliminarDoctor(doctor)}
+                        className="px-3 py-1 text-sm font-semibold bg-red-600 text-white rounded hover:bg-red-700 transition"
+                        type="button"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
               {doctores.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
                     Sin resultados
                   </td>
                 </tr>

@@ -71,6 +71,7 @@ const router = createBrowserRouter([
       { path: "/ejemplos", element: s(<Ejemplos />) },
       { path: "/paginas-web", element: s(<PaginasWeb />) },
       { path: "auth/login", element: s(<Login />) },
+      { path: "auth/login/:slug", element: s(<Login />) },
       { path: "auth/reset-password", element: s(<ResetPassword />) },
     ],
   },
