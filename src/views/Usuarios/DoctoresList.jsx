@@ -3,6 +3,8 @@ import useSWR from "swr";
 import { Link } from "react-router-dom";
 import clienteAxios from "../../config/axios";
 import { mostrarConfirmacion } from "../../utils/Alertas";
+import { usePageTour } from "../../tours/TourContext";
+import { doctoresSteps } from "../../tours/steps/doctores.steps";
 
 // peq. hook de debounce
 function useDebounced(value, delay = 350) {
@@ -23,6 +25,8 @@ const fetcher = async ([url, params, token]) => {
 };
 
 const DoctoresList = () => {
+  usePageTour('doctores', doctoresSteps);
+
   const token = localStorage.getItem("AUTH_TOKEN");
 
   const [busqueda, setBusqueda] = useState("");
@@ -79,7 +83,7 @@ const DoctoresList = () => {
 console.log('doctores', doctores)
   return (
     <div className="p-4">
-      <div className="flex justify-start gap-1 items-center mb-6">
+      <div className="flex justify-start gap-1 items-center mb-6" data-tour="doctores-header">
         <h2 className="text-2xl font-semibold">Administrar Doctores</h2>
         <Link
           to="/admin-dash/doctores/nuevo"
@@ -93,7 +97,7 @@ console.log('doctores', doctores)
       </div>
 
       {/* Filtros y búsqueda */}
-      <div className="flex flex-wrap gap-4 mb-4 items-center">
+      <div className="flex flex-wrap gap-4 mb-4 items-center" data-tour="doctores-filtros">
         <div className="flex gap-2 items-center">
           <input
             type="text"
@@ -160,7 +164,7 @@ console.log('doctores', doctores)
       ) : error ? (
         <p>Error al cargar los doctores.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
+        <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200" data-tour="doctores-tabla">
           <table className="min-w-full text-sm text-gray-800 bg-white">
             <thead className="bg-gray-100 text-xs text-gray-600 uppercase">
               <tr>

@@ -5,6 +5,8 @@ import HistorialClinico from "./componentes/HistorialClinico";
 import PacientesEvents from "./componentes/PacientesEvents";
 import ArchivosManager from "./ArchivosManager";
 import Patologias from "./Patologias";
+import { usePageTour } from "../../../tours/TourContext";
+import { historialPacienteSteps } from "../../../tours/steps/historialPaciente.steps";
 
 /* Reemplaza estos por tus componentes reales */
 const DatosPaciente = () => <div className="text-slate-700"><Paciente /></div>;
@@ -14,6 +16,8 @@ const Pagos = () => <div className="text-slate-700"><PacientesEvents /></div>;
 const Archivos = () => <div className="text-slate-700"><ArchivosManager /></div>;
 
 const HistorialPaciente = () => {
+  usePageTour('pacientes-historial', historialPacienteSteps);
+
   const [active, setActive] = useState(0);
 
   const tabs = useMemo(

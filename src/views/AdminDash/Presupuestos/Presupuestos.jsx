@@ -3,6 +3,8 @@ import { Download, Trash2, FileText, Plus, CheckCircle, Clock, XCircle, Send } f
 import clienteAxios from '../../../config/axios';
 import PresupuestoForm from './PresupuestoForm';
 import { generarPresupuestoPDF } from './generarPresupuestoPDF';
+import { usePageTour } from '../../../tours/TourContext';
+import { presupuestosSteps } from '../../../tours/steps/presupuestos.steps';
 
 const fmt = (n) => Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -15,6 +17,8 @@ const ESTADO_CONFIG = {
 };
 
 const Presupuestos = () => {
+    usePageTour('presupuestos', presupuestosSteps);
+
     const [tab, setTab]               = useState('lista');
     const [presupuestos, setPresupuestos] = useState([]);
     const [clinica, setClinica]       = useState(null);
@@ -83,13 +87,13 @@ const Presupuestos = () => {
     return (
         <div className="space-y-5">
             {/* Título */}
-            <div>
+            <div data-tour="presupuestos-header">
                 <h1 className="text-2xl font-bold text-gray-800">Presupuestos</h1>
                 <p className="text-gray-500 text-sm mt-1">Creá y gestioná presupuestos para tus pacientes</p>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-200">
+            <div className="flex border-b border-slate-200" data-tour="presupuestos-tabs">
                 <button className={tabCls('lista')} onClick={() => setTab('lista')}>
                     <FileText size={16} /> Lista de presupuestos
                 </button>

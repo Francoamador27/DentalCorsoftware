@@ -3,6 +3,8 @@ import AdminSidebar from "../components/AdminSidebar";
 import { useNavigate } from "react-router-dom";
 import UseAuth from "../hooks/useAuth";
 import TenantBlockedScreen from "../views/AdminDash/TenantBlockedScreen";
+import { TourProvider } from "../tours/TourContext";
+import HelpTourButton from "../components/HelpTourButton";
 
 const AdminLayout = () => {
   const { user, error, activeTenant } = UseAuth({ middleware: "auth" });
@@ -38,7 +40,10 @@ const AdminLayout = () => {
 
   return (
     <div className="admin-layout">
-      <AdminSidebar />
+      <TourProvider>
+        <AdminSidebar />
+        <HelpTourButton />
+      </TourProvider>
     </div>
   );
 };

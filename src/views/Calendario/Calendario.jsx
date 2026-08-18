@@ -11,6 +11,8 @@ import esLocale from '@fullcalendar/core/locales/es';
 import ModalShowEvent from './ModalShowEvent';
 import ModalCreateEvent from './ModalCreateEvent';
 import clienteAxios from '../../config/axios';
+import { usePageTour } from '../../tours/TourContext';
+import { calendarioSteps } from '../../tours/steps/calendario.steps';
 import './calendario.css';
 
 // ✅ SOLUCIÓN: Funciones helper fuera del componente (estables por naturaleza)
@@ -48,6 +50,8 @@ const mapApiEvent = (e) => ({
 });
 
 function Calendar() {
+  usePageTour('calendario', calendarioSteps);
+
   const calendarRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

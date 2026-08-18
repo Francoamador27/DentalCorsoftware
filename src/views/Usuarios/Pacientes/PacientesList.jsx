@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import clienteAxios from "../../../config/axios";
 import { mostrarConfirmacion } from "../../../utils/Alertas";
 import { Stethoscope } from "lucide-react";
+import { usePageTour } from "../../../tours/TourContext";
+import { pacientesSteps } from "../../../tours/steps/pacientes.steps";
 
 // peq. hook de debounce
 function useDebounced(value, delay = 350) {
@@ -24,6 +26,8 @@ const fetcher = async ([url, params, token]) => {
 };
 
 const PacientesList = () => {
+  usePageTour('pacientes', pacientesSteps);
+
   const token = localStorage.getItem("AUTH_TOKEN");
 
   const [busqueda, setBusqueda] = useState("");
@@ -80,7 +84,7 @@ const PacientesList = () => {
 
   return (
     <div className="p-4">
-      <div className="flex justify-start gap-1 items-center mb-6">
+      <div className="flex justify-start gap-1 items-center mb-6" data-tour="pacientes-header">
         <h2 className="text-2xl font-semibold">Administrar pacientes</h2>
         <Link
           to="/admin-dash/pacientes/nuevo"
@@ -94,7 +98,7 @@ const PacientesList = () => {
       </div>
 
       {/* Filtros y búsqueda */}
-      <div className="flex flex-wrap gap-4 mb-4 items-center">
+      <div className="flex flex-wrap gap-4 mb-4 items-center" data-tour="pacientes-filtros">
         <div className="flex gap-2 items-center">
           <input
             type="text"
@@ -161,7 +165,7 @@ const PacientesList = () => {
       ) : error ? (
         <p>Error al cargar los pacientes.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
+        <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200" data-tour="pacientes-tabla">
           <table className="min-w-full text-sm text-gray-800 bg-white">
             <thead className="bg-gray-100 text-xs text-gray-600 uppercase">
               <tr>

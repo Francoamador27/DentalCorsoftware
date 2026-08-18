@@ -35,6 +35,8 @@ import { useParams } from "react-router-dom";
 import { mostrarConfirmacion, mostrarError, mostrarExito } from "../../../../utils/Alertas.jsx";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { usePageTour } from "../../../../tours/TourContext";
+import { odontogramaSteps } from "../../../../tours/steps/odontograma.steps";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -75,6 +77,7 @@ function NoteModal({ toothNum, onAdd, onSkip }) {
       onClick={(e) => { if (e.target === e.currentTarget) onSkip(); }}
     >
       <div
+        data-tour="odontograma-nota-modal"
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
         style={{ animation: "noteModalIn 0.2s cubic-bezier(0.34,1.56,0.64,1)" }}
       >
@@ -326,7 +329,7 @@ function NotesTable({ toothNotes, onEdit, onDelete }) {
   const cancelEdit = () => setEditKey(null);
 
   return (
-    <div className="mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div data-tour="odontograma-tabla-notas" className="mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {/* Header */}
       <div
         className="px-5 py-3 flex items-center gap-2"
@@ -447,6 +450,8 @@ function NotesTable({ toothNotes, onEdit, onDelete }) {
 // ── Componente principal ─────────────────────────────────────────────────────
 
 export default function Odontograma() {
+  usePageTour('odontograma', odontogramaSteps);
+
   const canvasRef = useRef(null);
   const geometryRef = useRef({});
   const hoveredToothRef = useRef(null);
@@ -860,7 +865,7 @@ export default function Odontograma() {
     {
       title: "Restauraciones",
       items: [
-        { label: "Rest. existente", mode: ODONTOGRAM_MODE_FIS, variant: "primary" },
+        { label: "Rest. existente", mode: ODONTOGRAM_MODE_FIS, variant: "primary", tour: "odontograma-modo-restauracion" },
         { label: "Rest. requerida", mode: ODONTOGRAM_MODE_AMF, variant: "primary" },
         { label: "Rest. filtrada", mode: ODONTOGRAM_MODE_CARIES, variant: "primary" },
       ],
@@ -946,6 +951,7 @@ export default function Odontograma() {
                   <button
                     key={it.label}
                     type="button"
+                    data-tour={it.tour}
                     className={`${baseBtn} ${variants[it.variant || "ghost"]} ${isActive ? variants.activeRing : ""}`}
                     onClick={() => setMode(it.mode)}
                     title={it.label}
@@ -960,7 +966,7 @@ export default function Odontograma() {
       </div>
 
       {/* Acciones */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div data-tour="odontograma-acciones" className="mt-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
           className={`${baseBtn} ${variants.primary}`}
@@ -998,7 +1004,7 @@ export default function Odontograma() {
       </div>
 
       {/* Canvas */}
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm relative">
+      <div data-tour="odontograma-canvas" className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm relative">
         <canvas
           id="odontogram"
           ref={canvasRef}

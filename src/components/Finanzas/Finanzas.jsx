@@ -2,6 +2,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import Gastos from './Gastos';
 import Estadisticas from './Estadisticas';
 import Ingresos from './Ingresos';
+import { usePageTour } from '../../tours/TourContext';
+import { finanzasSteps } from '../../tours/steps/finanzas.steps';
 
 
 // Reemplaza estos por tus componentes reales
@@ -9,6 +11,8 @@ const CrearServicio = () => <div className="text-slate-700"></div>;
 const ListaServicios = () => <div className="text-slate-700"></div>;
 
 const Finanzas = () => {
+  usePageTour('finanzas', finanzasSteps);
+
   const [active, setActive] = useState(0);
 
   const tabs = useMemo(

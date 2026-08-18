@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LogOut, Settings, Home } from 'lucide-react';
 
@@ -21,6 +21,7 @@ import { Users, Calendar, ShieldUser, Coins, ListCheck, FileText } from 'lucide-
 import UseAuth from '../hooks/useAuth';
 import useCont from '../hooks/useCont';
 import TenantSwitcher from './TenantSwitcher';
+import { useTour } from '../tours/TourContext';
 
 const drawerWidth = 240;
 const collapsedWidth = 72;
@@ -30,19 +31,26 @@ const AdminSidebar = () => {
     const [open, setOpen] = useState(true);
     const location = useLocation();
     const { logout, user, activeTenant } = UseAuth({ middleware: 'auth' });
+    const { activeTour } = useTour();
 
     const handleDrawerToggle = () => {
         setOpen(!open);
     };
 
+    // Mientras corre el tour de sidebar forzamos el drawer expandido: si el
+    // usuario lo había colapsado, los steps no tendrían dónde anclarse.
+    useEffect(() => {
+        if (activeTour?.kind === 'sidebar') setOpen(true);
+    }, [activeTour]);
+
     const menuItems = [
-        { text: 'Calendario',   icon: <Calendar size={20} />,  path: '/admin-dash' },
-        { text: 'Citas',        icon: <ListCheck size={20} />, path: '/admin-dash/citas' },
-        { text: 'Pacientes',    icon: <Users size={20} />,     path: '/admin-dash/pacientes' },
-        { text: 'Profesionales',icon: <ShieldUser size={20} />,path: '/admin-dash/doctores' },
-        { text: 'Finanzas',      icon: <Coins size={20} />,     path: '/admin-dash/finanzas' },
-        { text: 'Presupuestos', icon: <FileText size={20} />,  path: '/admin-dash/presupuestos' },
-        { text: 'Mi Clínica',   icon: <Settings size={20} />,  path: '/admin-dash/configuraciones' },
+        { text: 'Calendario',   icon: <Calendar size={20} />,  path: '/admin-dash',                 tour: 'sidebar-calendario' },
+        { text: 'Citas',        icon: <ListCheck size={20} />, path: '/admin-dash/citas',            tour: 'sidebar-citas' },
+        { text: 'Pacientes',    icon: <Users size={20} />,     path: '/admin-dash/pacientes',        tour: 'sidebar-pacientes' },
+        { text: 'Profesionales',icon: <ShieldUser size={20} />,path: '/admin-dash/doctores',         tour: 'sidebar-doctores' },
+        { text: 'Finanzas',      icon: <Coins size={20} />,     path: '/admin-dash/finanzas',         tour: 'sidebar-finanzas' },
+        { text: 'Presupuestos', icon: <FileText size={20} />,  path: '/admin-dash/presupuestos',     tour: 'sidebar-presupuestos' },
+        { text: 'Mi Clínica',   icon: <Settings size={20} />,  path: '/admin-dash/configuraciones',  tour: 'sidebar-configuraciones' },
     ];
 
     return (
@@ -81,6 +89,7 @@ const AdminSidebar = () => {
                             href="/"
                             target="_blank"
                             rel="noopener noreferrer"
+                            data-tour="sidebar-brand"
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -183,6 +192,7 @@ const AdminSidebar = () => {
                             >
                                 <NavLink
                                     to={item.path}
+                                    data-tour={item.tour}
                                     style={{ textDecoration: 'none', color: 'inherit' }}
                                 >
                                     <ListItemButton

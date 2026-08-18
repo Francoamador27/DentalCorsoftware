@@ -6,6 +6,8 @@ import { formatDate } from '../../utils/formatDate';
 import { mostrarConfirmacion, mostrarError, mostrarExito } from '../../utils/Alertas';
 import NotificacionWhatsapp from '../../components/NotificacionWhatsapp/NotificacionWhatsapp';
 import { Stethoscope, User,CalendarCheck, Trash2 } from 'lucide-react';
+import { usePageTour } from '../../tours/TourContext';
+import { citasSteps } from '../../tours/steps/citas.steps';
 
 // ── Debounce pequeñito
 function useDebounced(value, delay = 350) {
@@ -27,6 +29,8 @@ const fetcher = async ([url, params, token]) => {
 };
 
 const CitasAdmin = () => {
+  usePageTour('citas', citasSteps);
+
   const token = localStorage.getItem('AUTH_TOKEN');
 
   // Filtros y paginación
@@ -115,13 +119,13 @@ const CitasAdmin = () => {
 
   return (
     <div className="p-4">
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex items-center gap-3" data-tour="citas-header">
         <h2 className="text-2xl font-semibold">Administrar Citas</h2>
         {isValidating && <span className="text-sm text-gray-500">Actualizando…</span>}
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-wrap gap-4 mb-4 items-center">
+      <div className="flex flex-wrap gap-4 mb-4 items-center" data-tour="citas-filtros">
         {/* Búsqueda */}
         <div className="flex gap-2 items-center">
           <input
@@ -216,7 +220,7 @@ const CitasAdmin = () => {
       ) : error ? (
         <p className="p-4 text-red-600">Error al cargar los eventos.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200">
+        <div className="overflow-x-auto rounded-xl shadow-lg border border-gray-200" data-tour="citas-tabla">
           <table className="min-w-full text-sm text-gray-800 bg-white">
             <thead className="bg-gray-100 text-xs text-gray-600 uppercase">
               <tr>

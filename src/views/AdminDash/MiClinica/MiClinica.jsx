@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import DatosClinica from './DatosClinica';
 import SmtpClinica from './SmtpClinica';
+import { usePageTour } from '../../../tours/TourContext';
+import { miClinicaSteps } from '../../../tours/steps/miClinica.steps';
 
 const TabButton = ({ active, onClick, children }) => (
     <button
@@ -14,18 +16,20 @@ const TabButton = ({ active, onClick, children }) => (
 );
 
 const MiClinica = () => {
+    usePageTour('mi-clinica', miClinicaSteps);
+
     const [tab, setTab] = useState('datos');
 
     return (
         <div className="space-y-6">
-            <div>
+            <div data-tour="miclinica-header">
                 <h1 className="text-2xl font-semibold text-slate-900">Mi Clínica</h1>
                 <p className="text-sm text-slate-500 mt-1">
                     Configurá los datos de tu clínica y el correo saliente.
                 </p>
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2" data-tour="miclinica-tabs">
                 <TabButton active={tab === 'datos'} onClick={() => setTab('datos')}>
                     Datos de la clínica
                 </TabButton>
@@ -34,7 +38,7 @@ const MiClinica = () => {
                 </TabButton>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5" data-tour="miclinica-panel">
                 {tab === 'datos' && <DatosClinica />}
                 {tab === 'smtp' && <SmtpClinica />}
             </div>
