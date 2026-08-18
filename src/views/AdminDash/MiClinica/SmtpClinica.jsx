@@ -17,6 +17,11 @@ const SmtpClinica = () => {
     const [msg, setMsg] = useState(null);
     const [err, setErr] = useState(null);
 
+    const [testEmail, setTestEmail] = useState('');
+    const [testing, setTesting] = useState(false);
+    const [testMsg, setTestMsg] = useState(null);
+    const [testErr, setTestErr] = useState(null);
+
     useEffect(() => {
         clienteAxios.get('/api/tenant-smtp')
             .then(({ data }) => {
@@ -34,24 +39,24 @@ const SmtpClinica = () => {
             .finally(() => setLoading(false));
     }, []);
 
+    const smtpPayload = () => ({
+        host: form.host || null,
+        port: form.port ? Number(form.port) : null,
+        username: form.username || null,
+        password: form.password || null,
+        encryption: form.encryption,
+        from_email: form.from_email || null,
+        from_name: form.from_name || null,
+    });
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMsg(null);
         setErr(null);
 
-        const payload = {
-            host: form.host || null,
-            port: form.port ? Number(form.port) : null,
-            username: form.username || null,
-            password: form.password || null,
-            encryption: form.encryption,
-            from_email: form.from_email || null,
-            from_name: form.from_name || null,
-        };
-
         try {
             setSaving(true);
-            await clienteAxios.put('/api/tenant-smtp', payload);
+            await clienteAxios.put('/api/tenant-smtp', smtpPayload());
             setMsg('Configuración SMTP guardada.');
             setForm(f => ({ ...f, password: '' }));
         } catch {
@@ -61,9 +66,33 @@ const SmtpClinica = () => {
         }
     };
 
+    const handleTest = async () => {
+        setTestMsg(null);
+        setTestErr(null);
+
+        if (!testEmail.trim()) {
+            setTestErr('Ingresá un email para enviar la prueba.');
+            return;
+        }
+
+        try {
+            setTesting(true);
+            const { data } = await clienteAxios.post('/api/tenant-smtp/test', {
+                ...smtpPayload(),
+                email: testEmail.trim(),
+            });
+            setTestMsg(data?.message || 'Email de prueba enviado correctamente.');
+        } catch (error) {
+            setTestErr(error?.response?.data?.message || 'No se pudo enviar el email de prueba.');
+        } finally {
+            setTesting(false);
+        }
+    };
+
     if (loading) return <p className="text-sm text-slate-500">Cargando...</p>;
 
     return (
+        <div className="space-y-8">
         <form onSubmit={handleSubmit} className="space-y-5">
             {msg && <div className="text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded text-sm">{msg}</div>}
             {err && <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded text-sm">{err}</div>}
@@ -158,6 +187,36 @@ const SmtpClinica = () => {
                 {saving ? 'Guardando…' : 'Guardar SMTP'}
             </button>
         </form>
+
+        <div className="pt-6 border-t border-slate-200" data-tour="smtp-test">
+            <h3 className="text-sm font-semibold text-slate-700 mb-1">Probar configuración</h3>
+            <p className="text-xs text-slate-500 mb-3">
+                Enviá un email de prueba para verificar que el SMTP funciona. Usa los datos que tengas
+                escritos arriba, aunque todavía no los hayas guardado.
+            </p>
+
+            {testMsg && <div className="text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded text-sm mb-3">{testMsg}</div>}
+            {testErr && <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded text-sm mb-3">{testErr}</div>}
+
+            <div className="flex flex-wrap gap-2">
+                <input
+                    type="email"
+                    value={testEmail}
+                    onChange={e => setTestEmail(e.target.value)}
+                    placeholder="tu-email@ejemplo.com"
+                    className="flex-1 min-w-[220px] border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <button
+                    type="button"
+                    onClick={handleTest}
+                    disabled={testing}
+                    className={`px-5 py-2.5 rounded-lg text-sm font-semibold ${testing ? 'bg-slate-200 text-slate-500' : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-50'}`}
+                >
+                    {testing ? 'Enviando…' : 'Enviar test'}
+                </button>
+            </div>
+        </div>
+        </div>
     );
 };
 
