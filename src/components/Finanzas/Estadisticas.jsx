@@ -221,7 +221,7 @@ const Estadisticas = () => {
                     </div>
 
                     {/* Información adicional */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-md">
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-md mb-6">
                         <h3 className="text-lg font-semibold mb-4">Resumen Detallado</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -234,7 +234,7 @@ const Estadisticas = () => {
                                 <p className="text-sm text-gray-600">Porcentaje de Cobro:</p>
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 bg-gray-200 rounded-full h-4">
-                                        <div 
+                                        <div
                                             className="bg-green-500 h-4 rounded-full transition-all"
                                             style={{ width: `${estadisticas.resumen.porcentaje_cobrado}%` }}
                                         ></div>
@@ -246,6 +246,86 @@ const Estadisticas = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Ingresos cobrados: Obra Social vs Particular */}
+                    {estadisticas.por_obra_social && (
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                            <h3 className="text-lg font-semibold mb-4">Ingresos Cobrados por Obra Social</h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div className="bg-sky-50 border border-sky-200 rounded-xl p-6 shadow-md">
+                                    <h4 className="text-sm font-medium text-sky-600 mb-2">Cobrado vía Obra Social</h4>
+                                    <p className="text-2xl font-bold text-sky-700">
+                                        {formatCurrency(estadisticas.por_obra_social.cubierto_os.total)}
+                                    </p>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        {estadisticas.por_obra_social.cubierto_os.cantidad} eventos ·{' '}
+                                        {estadisticas.por_obra_social.cubierto_os.porcentaje}% de lo cobrado
+                                    </p>
+                                </div>
+
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 shadow-md">
+                                    <h4 className="text-sm font-medium text-amber-600 mb-2">Cobrado Particular</h4>
+                                    <p className="text-2xl font-bold text-amber-700">
+                                        {formatCurrency(estadisticas.por_obra_social.particular.total)}
+                                    </p>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        {estadisticas.por_obra_social.particular.cantidad} eventos ·{' '}
+                                        {estadisticas.por_obra_social.particular.porcentaje}% de lo cobrado
+                                    </p>
+                                </div>
+                            </div>
+
+                            {estadisticas.por_obra_social.sin_clasificar?.cantidad > 0 && (
+                                <div className="bg-gray-50 border border-gray-300 rounded-xl p-4 mb-6 flex items-start gap-3">
+                                    <span className="text-gray-500">⚠️</span>
+                                    <div>
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            {formatCurrency(estadisticas.por_obra_social.sin_clasificar.total)} sin clasificar
+                                            ({estadisticas.por_obra_social.sin_clasificar.cantidad} {estadisticas.por_obra_social.sin_clasificar.cantidad === 1 ? 'cita' : 'citas'})
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Son citas de pacientes que tienen obra social asignada, pero la cita nunca definió
+                                            si estaba cubierta o no. Abrilas desde el calendario y guardá los cambios para
+                                            clasificarlas — no se están contando ni como Obra Social ni como Particular.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {estadisticas.por_obra_social.detalle.length > 0 ? (
+                                <div>
+                                    <h4 className="text-sm font-semibold text-gray-600 mb-3">Desglose por Obra Social</h4>
+                                    <div className="space-y-3">
+                                        {estadisticas.por_obra_social.detalle.map((item) => {
+                                            const max = estadisticas.por_obra_social.detalle[0]?.total || 1;
+                                            const width = max > 0 ? (item.total / max) * 100 : 0;
+                                            return (
+                                                <div key={item.obra_social} className="flex items-center gap-3">
+                                                    <span className="w-40 shrink-0 text-sm text-gray-700 truncate" title={item.obra_social}>
+                                                        {item.obra_social}
+                                                    </span>
+                                                    <div className="flex-1 bg-gray-100 rounded-full h-4">
+                                                        <div
+                                                            className="bg-sky-500 h-4 rounded-full transition-all"
+                                                            style={{ width: `${width}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="w-28 shrink-0 text-right text-sm font-semibold text-gray-800">
+                                                        {formatCurrency(item.total)}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500">
+                                    No hay cobros vinculados a obras sociales en el período seleccionado.
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </>
             )}
         </div>

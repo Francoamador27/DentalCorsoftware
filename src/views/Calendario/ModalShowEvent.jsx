@@ -44,6 +44,17 @@ export default function ModalShowEvent({
   const [datos, setDatos] = useState(); // minutos
   const [amount, setAmount] = useState(xp.monto ?? xp.amount ?? "");
   const [isPaid, setIsPaid] = useState(Boolean(xp.chec ?? xp.chec ?? false));
+
+  // 🏥 Obra social del paciente
+  const [cubiertoObraSocial, setCubiertoObraSocial] = useState(
+    xp.cubiertoObraSocial ?? true
+  );
+  const [montoCubiertoOS, setMontoCubiertoOS] = useState(
+    xp.montoCubiertoOS ?? ""
+  );
+  const [montoPacienteExtra, setMontoPacienteExtra] = useState(
+    xp.montoPacienteExtra ?? ""
+  );
   const initialDoctor = useMemo(() => {
     const name = [xp.doctor_name, xp.doctor_lastname]
       .filter(Boolean)
@@ -109,6 +120,9 @@ export default function ModalShowEvent({
     setAmount(xp.monto ?? xp.amount ?? "");
     setIsPaid(Boolean(xp.chec ?? xp.chec ?? false));
     setSelectedDoctor(initialDoctor);
+    setCubiertoObraSocial(xp.cubiertoObraSocial ?? true);
+    setMontoCubiertoOS(xp.montoCubiertoOS ?? "");
+    setMontoPacienteExtra(xp.montoPacienteExtra ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
@@ -121,6 +135,8 @@ export default function ModalShowEvent({
     const endLocal = new Date(
       startLocal.getTime() + (parseInt(duration, 10) || 0) * 60000,
     );
+    const tieneObraSocial = !!xp.obraSocialNombre;
+
     return {
       id: selected.id,
       title: selected.title,
@@ -130,6 +146,13 @@ export default function ModalShowEvent({
       isPaid,
       doctorId: selectedDoctor?.id ?? null,
       doctorName: selectedDoctor?.name ?? null,
+      cubiertoObraSocial: tieneObraSocial ? cubiertoObraSocial : null,
+      montoCubiertoOS: tieneObraSocial && !cubiertoObraSocial && montoCubiertoOS
+        ? Number(montoCubiertoOS)
+        : null,
+      montoPacienteExtra: tieneObraSocial && !cubiertoObraSocial && montoPacienteExtra
+        ? Number(montoPacienteExtra)
+        : null,
     };
   }, [
     date,
@@ -140,6 +163,10 @@ export default function ModalShowEvent({
     selected?.id,
     selected?.title,
     selectedDoctor,
+    cubiertoObraSocial,
+    montoCubiertoOS,
+    montoPacienteExtra,
+    xp.obraSocialNombre,
   ]);
 
   const handleSave = async () => {
@@ -161,6 +188,9 @@ export default function ModalShowEvent({
           isPaid: currentPayload.isPaid,
           doctorId: currentPayload.doctorId,
           doctorName: currentPayload.doctorName,
+          cubiertoObraSocial: currentPayload.cubiertoObraSocial,
+          montoCubiertoOS: currentPayload.montoCubiertoOS,
+          montoPacienteExtra: currentPayload.montoPacienteExtra,
         },
         { headers: token ? { Authorization: `Bearer ${token}` } : undefined },
       );
@@ -400,6 +430,84 @@ export default function ModalShowEvent({
               </span>
             </label>
           </div>
+
+          {/* 🏥 Obra Social del paciente */}
+          {xp.obraSocialNombre && (
+            <div className="grid gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <span className="text-sm text-gray-500">
+                  Obra Social:{" "}
+                  <strong className="text-gray-700">{xp.obraSocialNombre}</strong>
+                </span>
+
+                <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+                  <span className="text-sm font-semibold text-gray-700">
+                    ¿Cubierto por la obra social?
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={cubiertoObraSocial}
+                    onChange={(e) => setCubiertoObraSocial(e.target.checked)}
+                    className="peer sr-only"
+                    aria-label="Cubierto por la obra social"
+                  />
+                  <span
+                    className="
+        relative h-6 w-12 rounded-full
+        bg-gray-300 transition-colors
+        peer-checked:bg-[#008DD2]
+        peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#008DD2]
+      "
+                  >
+                    <span
+                      className="
+          absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow
+          transition-all duration-300
+          peer-checked:translate-x-6
+        "
+                    />
+                  </span>
+                  <span className="text-sm text-gray-700">
+                    {cubiertoObraSocial ? "Sí" : "No"}
+                  </span>
+                </label>
+              </div>
+
+              {!cubiertoObraSocial && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <label style={{ display: "grid", gap: 6 }}>
+                    <strong style={{ color: "#374151", fontSize: 14 }}>
+                      Monto que cubre la obra social
+                    </strong>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={montoCubiertoOS}
+                      onChange={(e) => setMontoCubiertoOS(e.target.value)}
+                      placeholder="Ej: 3000"
+                      style={inputStyle}
+                    />
+                  </label>
+
+                  <label style={{ display: "grid", gap: 6 }}>
+                    <strong style={{ color: "#374151", fontSize: 14 }}>
+                      Extra a pagar por el paciente
+                    </strong>
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={montoPacienteExtra}
+                      onChange={(e) => setMontoPacienteExtra(e.target.value)}
+                      placeholder="Ej: 2000"
+                      style={inputStyle}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Doctor */}
           <DoctorSelector value={selectedDoctor} onChange={setSelectedDoctor} />

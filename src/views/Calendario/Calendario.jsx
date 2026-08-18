@@ -45,6 +45,10 @@ const mapApiEvent = (e) => ({
     chec: e.chec ?? null,
     day_of_week: e.day_of_week ?? null,
     day_of_month: e.day_of_month ?? null,
+    obraSocialNombre: e.obra_social_nombre ?? null,
+    cubiertoObraSocial: e.cubierto_obra_social ?? null,
+    montoCubiertoOS: e.monto_cubierto_os ?? null,
+    montoPacienteExtra: e.monto_paciente_extra ?? null,
     raw: e,
   },
 });

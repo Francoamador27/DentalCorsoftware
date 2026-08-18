@@ -68,6 +68,12 @@ const Cita = () => {
   const [saving, setSaving] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
 
+  // 🏥 Obra social del paciente
+  const [obraSocialNombre, setObraSocialNombre] = useState(null);
+  const [cubiertoObraSocial, setCubiertoObraSocial] = useState(true);
+  const [montoCubiertoOS, setMontoCubiertoOS] = useState('');
+  const [montoPacienteExtra, setMontoPacienteExtra] = useState('');
+
   // Poblar formulario con los datos del recurso
   useEffect(() => {
     const ev = data?.data;
@@ -96,6 +102,11 @@ const Cita = () => {
         ? { id: Number(docId), name: docName || '(Sin nombre)', email: ev.doctor_email || '' }
         : null
     );
+
+    setObraSocialNombre(ev.obra_social_nombre ?? null);
+    setCubiertoObraSocial(ev.cubierto_obra_social ?? true);
+    setMontoCubiertoOS(ev.monto_cubierto_os ?? '');
+    setMontoPacienteExtra(ev.monto_paciente_extra ?? '');
   }, [data]);
 
   // Sincronizar doctorId al cambiar selección
@@ -120,6 +131,8 @@ const Cita = () => {
       return;
     }
 
+    const tieneObraSocial = !!obraSocialNombre;
+
     const payload = {
       title: form.title,
       start: startISO, // ISO en UTC
@@ -128,6 +141,13 @@ const Cita = () => {
       isPaid: !!form.isPaid,
       doctorId: form.doctorId ? Number(form.doctorId) : null,
       color: form.color,
+      cubiertoObraSocial: tieneObraSocial ? cubiertoObraSocial : null,
+      montoCubiertoOS: tieneObraSocial && !cubiertoObraSocial && montoCubiertoOS
+        ? Number(montoCubiertoOS)
+        : null,
+      montoPacienteExtra: tieneObraSocial && !cubiertoObraSocial && montoPacienteExtra
+        ? Number(montoPacienteExtra)
+        : null,
     };
 
     try {
@@ -458,6 +478,73 @@ const Cita = () => {
                 </label>
               </div>
             </div>
+
+            {/* 🏥 Obra Social del paciente */}
+            {obraSocialNombre && (
+              <div className="md:col-span-2 space-y-4 bg-white/50 backdrop-blur-sm border border-white/30 rounded-xl p-6 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                    Obra Social: <span className="font-bold text-slate-800">{obraSocialNombre}</span>
+                  </p>
+
+                  <label className="inline-flex items-center gap-3 cursor-pointer select-none">
+                    <span className="text-sm font-semibold text-slate-700">¿Cubierto por la obra social?</span>
+                    <input
+                      type="checkbox"
+                      checked={cubiertoObraSocial}
+                      onChange={(e) => setCubiertoObraSocial(e.target.checked)}
+                      className="peer sr-only"
+                      aria-label="Cubierto por la obra social"
+                    />
+                    <span className="relative h-6 w-12 rounded-full bg-gray-300 transition-colors peer-checked:bg-[#008DD2] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#008DD2]">
+                      <span className="absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-all duration-300 peer-checked:translate-x-6" />
+                    </span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {cubiertoObraSocial ? 'Sí' : 'No'}
+                    </span>
+                  </label>
+                </div>
+
+                {!cubiertoObraSocial && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Monto que cubre la obra social</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={montoCubiertoOS}
+                          onChange={(e) => setMontoCubiertoOS(e.target.value)}
+                          placeholder="Ej: 3000"
+                          className="w-full bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl pl-8 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500/50 transition-all duration-200 text-slate-800 placeholder-slate-400 shadow-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Extra a pagar por el paciente</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={montoPacienteExtra}
+                          onChange={(e) => setMontoPacienteExtra(e.target.value)}
+                          placeholder="Ej: 2000"
+                          className="w-full bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl pl-8 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all duration-200 text-slate-800 placeholder-slate-400 shadow-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Doctor Selector */}
             <div className="md:col-span-2 space-y-2">

@@ -6,6 +6,9 @@ import { mostrarError, mostrarExito } from "../../../utils/Alertas";
 import { usePatientLookup } from "./hooks/usePatientLookup";
 import LookupStatusBadge from "./componentes/LookupStatusBadge";
 import PatientImportModal from "./componentes/PatientImportModal";
+import ObraSocialModal from "./componentes/ObraSocialModal";
+
+const CREAR_OBRA_SOCIAL = "__crear__";
 
 const toYMD = (val) => {
   if (!val) return "";
@@ -34,6 +37,9 @@ const Paciente = () => {
     phon: "",
     cump: "",
     state: 1,
+    obra_social_id: "",
+    numero_afiliado: "",
+    fecha_caducidad: "",
 
     // users
     email: "",
@@ -47,6 +53,43 @@ const Paciente = () => {
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [errMsg, setErrMsg] = useState("");
+
+  // ── Obras sociales ─────────────────────────────────────────────────────
+  const [obrasSociales, setObrasSociales] = useState([]);
+  const [showObraSocialModal, setShowObraSocialModal] = useState(false);
+  const [carnetFile, setCarnetFile] = useState(null);
+  const [carnetPreviewUrl, setCarnetPreviewUrl] = useState("");
+  const [carnetUrlActual, setCarnetUrlActual] = useState("");
+
+  // Genera (y libera) una vista previa local cuando se selecciona un archivo nuevo
+  useEffect(() => {
+    if (!carnetFile) {
+      setCarnetPreviewUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(carnetFile);
+    setCarnetPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [carnetFile]);
+
+  const isImageUrl = (url) => /\.(png|jpe?g|webp|gif)(\?|$)/i.test(url || "");
+  const carnetEsImagen = carnetFile
+    ? carnetFile.type?.startsWith("image/")
+    : isImageUrl(carnetUrlActual);
+
+  useEffect(() => {
+    const fetchObrasSociales = async () => {
+      try {
+        const { data } = await clienteAxios.get("/api/obras-sociales", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setObrasSociales(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Error al cargar obras sociales:", error);
+      }
+    };
+    fetchObrasSociales();
+  }, [token]);
 
   // ── Lookup cross-tenant (solo en modo creación) ──────────────────────────
   const { status: lookupStatus, foundData, triggerLookup, reset: resetLookup } = usePatientLookup();
@@ -76,6 +119,9 @@ const Paciente = () => {
           phon: data.phon ?? "",
           cump: toYMD(data.cump),
           state: data.state ?? 1,
+          obra_social_id: data.obra_social_id ?? "",
+          numero_afiliado: data.numero_afiliado ?? "",
+          fecha_caducidad: toYMD(data.fecha_caducidad),
 
           // users (pueden venir como root o dentro de data.user)
           email: (data.email ?? data.user?.email) ?? "",
@@ -87,6 +133,15 @@ const Paciente = () => {
           // password NO se rellena en edición
           password: "",
         }));
+
+        // Si la obra social del paciente no está en la lista actual (poco común), la agregamos
+        // (Laravel serializa la relación obraSocial() como "obra_social")
+        if (data.obra_social && data.obra_social.id) {
+          setObrasSociales((prev) =>
+            prev.some((o) => o.id === data.obra_social.id) ? prev : [...prev, data.obra_social]
+          );
+        }
+        setCarnetUrlActual(data.carnet_url ?? "");
       } catch (error) {
         console.error("Error al cargar el paciente:", error);
         setErrMsg(
@@ -109,6 +164,31 @@ const Paciente = () => {
     }));
   }, []);
 
+  // Selector de Obra Social: "" = Particular, CREAR_OBRA_SOCIAL abre el modal de creación
+  const handleObraSocialChange = useCallback((e) => {
+    const { value } = e.target;
+    if (value === CREAR_OBRA_SOCIAL) {
+      setShowObraSocialModal(true);
+      return;
+    }
+    setPaciente((prev) => ({
+      ...prev,
+      obra_social_id: value,
+      ...(value ? {} : { numero_afiliado: "", fecha_caducidad: "" }),
+    }));
+    if (!value) setCarnetFile(null);
+  }, []);
+
+  const handleObraSocialCreated = useCallback((nuevaObraSocial) => {
+    setObrasSociales((prev) => [...prev, nuevaObraSocial]);
+    setPaciente((prev) => ({ ...prev, obra_social_id: nuevaObraSocial.id }));
+    setShowObraSocialModal(false);
+  }, []);
+
+  const handleCarnetChange = useCallback((e) => {
+    setCarnetFile(e.target.files?.[0] || null);
+  }, []);
+
   // Lógica compartida de llamada a la API
   const doCreate = useCallback(async (payload) => {
     setSaving(true);
@@ -128,6 +208,17 @@ const Paciente = () => {
       setSaving(false);
     }
   }, [token, navigate]);
+
+  // Convierte el payload plano en FormData (necesario para enviar el archivo del carnet)
+  const buildFormData = useCallback((payload) => {
+    const fd = new FormData();
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "") return;
+      fd.append(key, value);
+    });
+    if (carnetFile) fd.append("carnet", carnetFile);
+    return fd;
+  }, [carnetFile]);
 
   // Envío
   const handleSubmit = async (e) => {
@@ -150,6 +241,11 @@ const Paciente = () => {
       phon: paciente.phon || null,
       cump: paciente.cump ? toYMD(paciente.cump) : null,
       state: paciente.state ?? 1,
+      obra_social_id: paciente.obra_social_id || null,
+      numero_afiliado: paciente.obra_social_id ? (paciente.numero_afiliado || null) : null,
+      fecha_caducidad: paciente.obra_social_id && paciente.fecha_caducidad
+        ? toYMD(paciente.fecha_caducidad)
+        : null,
     };
 
     const userPayload = {
@@ -165,15 +261,23 @@ const Paciente = () => {
 
     if (isCreating) {
       const payload = { ...patientPayload, ...userPayload, ...(importMeta ?? {}) };
-      return doCreate(payload);
+      return doCreate(carnetFile ? buildFormData(payload) : payload);
     }
 
     setSaving(true);
     setErrMsg("");
     try {
-      await clienteAxios.put(`/api/pacientes/${id}`, { ...patientPayload, ...userPayload }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      if (carnetFile) {
+        const fd = buildFormData({ ...patientPayload, ...userPayload });
+        fd.append("_method", "PUT");
+        await clienteAxios.post(`/api/pacientes/${id}`, fd, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        await clienteAxios.put(`/api/pacientes/${id}`, { ...patientPayload, ...userPayload }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
       mostrarExito("Paciente actualizado correctamente");
       navigate("/admin-dash/pacientes");
     } catch (error) {
@@ -369,16 +473,16 @@ const Paciente = () => {
                   />
                 </div>
 
-                {/* Grupo */}
+                {/* Grupo sanguíneo (opcional) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Grupo</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Grupo Sanguíneo</label>
                   <input
                     type="text"
                     name="grup"
                     value={paciente.grup || ""}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 hover:border-gray-400 bg-gray-50 focus:bg-white"
-                    placeholder="O+, A-, etc."
+                    placeholder="O+, A-, etc. (opcional)"
                   />
                 </div>
 
@@ -394,6 +498,108 @@ const Paciente = () => {
                     placeholder="+54 3517699950"
                   />
                 </div>
+
+                {/* Obra Social */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Obra Social</label>
+                  <select
+                    name="obra_social_id"
+                    value={paciente.obra_social_id || ""}
+                    onChange={handleObraSocialChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-gray-50 focus:bg-white"
+                  >
+                    <option value="">Particular</option>
+                    {obrasSociales.map((os) => (
+                      <option key={os.id} value={os.id}>{os.nombre}</option>
+                    ))}
+                    <option value={CREAR_OBRA_SOCIAL}>+ Crear obra social…</option>
+                  </select>
+                </div>
+
+                {/* Campos condicionales: solo si hay obra social seleccionada (no Particular) */}
+                {!!paciente.obra_social_id && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Número de afiliado</label>
+                      <input
+                        type="text"
+                        name="numero_afiliado"
+                        value={paciente.numero_afiliado || ""}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 hover:border-gray-400 bg-gray-50 focus:bg-white"
+                        placeholder="Opcional"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de caducidad</label>
+                      <input
+                        type="date"
+                        name="fecha_caducidad"
+                        value={paciente.fecha_caducidad || ""}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 hover:border-gray-400 bg-gray-50 focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Carnet de obra social</label>
+
+                      <div className="flex items-start gap-4">
+                        {/* Miniatura: preferimos el archivo recién elegido; si no, el carnet ya guardado */}
+                        {(() => {
+                          const previewUrl = carnetFile ? carnetPreviewUrl : carnetUrlActual;
+                          if (!previewUrl) return null;
+
+                          return carnetEsImagen ? (
+                            <a href={previewUrl} target="_blank" rel="noreferrer" className="flex-shrink-0">
+                              <img
+                                src={previewUrl}
+                                alt="Carnet de obra social"
+                                className="w-20 h-20 object-cover rounded-xl border border-gray-300 hover:opacity-80 transition"
+                              />
+                            </a>
+                          ) : (
+                            <a
+                              href={previewUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex-shrink-0 w-20 h-20 rounded-xl border border-gray-300 bg-gray-100 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-200 transition"
+                            >
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <span className="text-[10px] mt-1">PDF</span>
+                            </a>
+                          );
+                        })()}
+
+                        <div className="flex-1 min-w-0">
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={handleCarnetChange}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 hover:border-gray-400 bg-gray-50 focus:bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:text-sm"
+                          />
+                          {carnetFile && (
+                            <p className="text-xs text-gray-500 mt-1">Nuevo archivo: {carnetFile.name}</p>
+                          )}
+                          {!carnetFile && carnetUrlActual && (
+                            <a
+                              href={carnetUrlActual}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-block text-xs text-blue-600 hover:underline mt-1"
+                            >
+                              Ver carnet actual
+                            </a>
+                          )}
+                          <p className="text-xs text-gray-400 mt-1">Imagen o PDF, opcional.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -437,8 +643,6 @@ const Paciente = () => {
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-gray-50 focus:bg-white"
                   >
-                    <option value={1}>Admin</option>
-                    <option value={2}>Doctor</option>
                     <option value={3}>Paciente</option>
                   </select>
                 </div>
@@ -569,6 +773,14 @@ const Paciente = () => {
           });
         }}
         onClose={() => resetLookup()}
+      />
+    )}
+
+    {/* Modal de creación de obra social */}
+    {showObraSocialModal && (
+      <ObraSocialModal
+        onCreated={handleObraSocialCreated}
+        onClose={() => setShowObraSocialModal(false)}
       />
     )}
     </>

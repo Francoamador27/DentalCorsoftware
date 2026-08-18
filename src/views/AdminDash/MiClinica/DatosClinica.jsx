@@ -3,6 +3,14 @@ import clienteAxios from '../../../config/axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+const activeTenantSlug = () => {
+    try {
+        return JSON.parse(localStorage.getItem('ACTIVE_TENANT') || 'null')?.slug ?? null;
+    } catch {
+        return null;
+    }
+};
+
 const DatosClinica = () => {
     const [form, setForm] = useState({
         clinic_name: '',
@@ -19,6 +27,17 @@ const DatosClinica = () => {
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState(null);
     const [err, setErr] = useState(null);
+    const [copiado, setCopiado] = useState(false);
+
+    const slug = activeTenantSlug();
+    const loginLink = slug ? `${window.location.origin}/auth/login/${slug}` : null;
+
+    const copiarLink = () => {
+        if (!loginLink) return;
+        navigator.clipboard.writeText(loginLink);
+        setCopiado(true);
+        setTimeout(() => setCopiado(false), 2000);
+    };
 
     useEffect(() => {
         clienteAxios.get('/api/tenant-settings')
@@ -78,6 +97,34 @@ const DatosClinica = () => {
     if (loading) return <p className="text-sm text-slate-500">Cargando...</p>;
 
     return (
+        <div className="space-y-6">
+            {loginLink && (
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Link de acceso de tu clínica
+                    </label>
+                    <p className="text-xs text-slate-500 mb-2">
+                        Compartí este enlace con tus pacientes y usuarios para que ingresen directamente a tu clínica.
+                    </p>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            readOnly
+                            value={loginLink}
+                            onFocus={(e) => e.target.select()}
+                            className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-600"
+                        />
+                        <button
+                            type="button"
+                            onClick={copiarLink}
+                            className="px-4 py-2 text-sm font-semibold rounded-lg bg-slate-700 text-white hover:bg-slate-800 transition"
+                        >
+                            {copiado ? 'Copiado ✓' : 'Copiar'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
             {msg && <div className="text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded text-sm">{msg}</div>}
             {err && <div className="text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded text-sm">{err}</div>}
@@ -171,6 +218,7 @@ const DatosClinica = () => {
                 {saving ? 'Guardando…' : 'Guardar datos'}
             </button>
         </form>
+        </div>
     );
 };
 

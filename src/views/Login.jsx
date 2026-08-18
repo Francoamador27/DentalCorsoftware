@@ -1,11 +1,14 @@
-import { Link } from "react-router-dom";
-import { useState, useRef } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
 import Alerta from "../components/Alerta";
 import UseAuth from "../hooks/useAuth";
 import clienteAxios from "../config/axios";
 import TurnstileCaptcha from "../components/TurnstileCaptcha";
 
 const Login = () => {
+  const { slug } = useParams();
+  const [clinica, setClinica] = useState(null);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [captchaLogin, setCaptchaLogin] = useState("");
@@ -23,6 +26,15 @@ const Login = () => {
   const turnstileResetRef = useRef(null);
 
   const { login } = UseAuth({ middleware: "guest", url: "/mi-cuenta" });
+
+  // Branding de la clínica cuando se accede via /auth/login/:slug
+  useEffect(() => {
+    if (!slug) return;
+    clienteAxios
+      .get(`/api/public/tenants/${slug}`)
+      .then(({ data }) => setClinica(data))
+      .catch(() => setClinica(false));
+  }, [slug]);
 
   // Leer entorno
   const entorno = import.meta.env.VITE_ENTORNO;
@@ -102,14 +114,25 @@ const Login = () => {
   const camposResetCompletos =
     emailReset.trim() !== "" && (esLocal || captchaReset);
 
+  const whatsappHref = clinica?.whatsapp
+    ? `https://wa.me/${clinica.whatsapp.replace(/\D/g, "")}`
+    : null;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-96 h-[450px] relative perspective">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 pt-28 pb-8 gap-6">
+      <div className={`w-96 ${clinica ? "h-[600px]" : "h-[450px]"} relative perspective`}>
         <div
           className={`transition-transform duration-700 relative w-full h-full transform-style-preserve-3d ${showReset ? "rotate-y-180" : ""}`}
         >
           {/* Login */}
-          <div className="absolute inset-0 backface-hidden bg-white rounded-lg shadow-lg p-6">
+          <div className="absolute inset-0 backface-hidden bg-white rounded-lg shadow-lg p-6 overflow-y-auto">
+            {clinica?.logo_url && (
+              <img
+                src={clinica.logo_url}
+                alt={clinica.clinic_name}
+                className="h-14 object-contain mx-auto mb-3"
+              />
+            )}
             <div className="flex flex-col justify-center items-center space-y-2">
               <h2 className="text-2xl font-medium text-slate-700">
                 Iniciar sesión
@@ -186,6 +209,30 @@ const Login = () => {
                                 <Link className="text-blue-500 hover:underline" to="/auth/register">Registrate</Link>
                             </p> */}
             </form>
+
+            {clinica && (
+              <div className="mt-4 pt-4 border-t border-slate-100 text-center space-y-1">
+                <h1 className="text-sm font-semibold text-slate-700">
+                  {clinica.clinic_name}
+                </h1>
+                {clinica.address && (
+                  <p className="text-xs text-slate-500">{clinica.address}</p>
+                )}
+                {clinica.business_hours && (
+                  <p className="text-xs text-slate-500">{clinica.business_hours}</p>
+                )}
+                {whatsappHref && (
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline"
+                  >
+                    Contactar por WhatsApp
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Recuperación */}

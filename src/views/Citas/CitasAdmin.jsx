@@ -228,6 +228,7 @@ const CitasAdmin = () => {
                 <th className="px-4 py-3 text-left">Título</th>
                 <th className="px-4 py-3 text-left">Doctor</th>
                 <th className="px-4 py-3 text-left">Paciente</th>
+                <th className="px-4 py-3 text-left">Obra Social</th>
                 <th className="px-4 py-3 text-left">Inicio</th>
                 <th className="px-4 py-3 text-left">Fin</th>
                 <th className="px-4 py-3 text-left">Monto</th>
@@ -260,11 +261,29 @@ const CitasAdmin = () => {
                       )}
                     </div>
                   </td>
+                  <td className="px-4 py-3">
+                    {ev.obra_social_nombre ? (
+                      <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-sky-100 text-sky-800">
+                        {ev.obra_social_nombre}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">Particular</span>
+                    )}
+                  </td>
 
                   <td className="px-4 py-3">{formatDate(ev.start)}</td>
                   <td className="px-4 py-3">{formatDate(ev.end)}</td>
                   <td className="px-4 py-3 font-medium">
                     {fmtCurrency.format(Number(ev.monto || 0))}
+                    {ev.obra_social_nombre && ev.cubierto_obra_social === false && (
+                      <div className="mt-1 text-xs font-normal text-gray-500 space-y-0.5">
+                        <div>OS cubre: {fmtCurrency.format(Number(ev.monto_cubierto_os || 0))}</div>
+                        <div>Paciente: {fmtCurrency.format(Number(ev.monto_paciente_extra || 0))}</div>
+                      </div>
+                    )}
+                    {ev.obra_social_nombre && ev.cubierto_obra_social === true && (
+                      <div className="mt-1 text-xs font-normal text-green-600">Cubierto 100% por OS</div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -309,7 +328,7 @@ const CitasAdmin = () => {
               ))}
               {eventos.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={10} className="px-4 py-6 text-center text-gray-500">
                     No hay eventos para mostrar.
                   </td>
                 </tr>

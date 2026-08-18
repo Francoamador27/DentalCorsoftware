@@ -33,7 +33,12 @@
   }
 }
 .nav-link-active .MuiListItemButton-root {
-  background-color: rgba(25, 118, 210, 0.12); /* MUI primary.light por defecto */
+  background-color: rgba(
+    25,
+    118,
+    210,
+    0.12
+  ); /* MUI primary.light por defecto */
 }
 
 .card {
@@ -59,8 +64,11 @@
   transform: rotateY(180deg);
 }
 .checkout .cart-product {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 14px;
+}
+.MuiButtonBase-root.MuiListItemButton-root.MuiListItemButton-gutters.MuiListItemButton-root.MuiListItemButton-gutters.css-rk664c-MuiButtonBase-root-MuiListItemButton-root {
+  max-height: 50px;
 }

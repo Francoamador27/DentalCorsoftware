@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import clienteAxios from '../../../config/axios';
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const C = {
@@ -63,14 +64,18 @@ const truncate = (doc, text, maxW) => {
     return t + '…';
 };
 
-// ── Cargar imagen a base64 ────────────────────────────────────────────────────
-async function loadImg(url) {
-    if (!url) return null;
+// ── Cargar el logo de la clínica a base64, vía la API (evita problemas de CORS
+// con el archivo estático). Se manda el path del logo (tiene un UUID único
+// por clínica/subida) como query param "v" para que la URL sea distinta por
+// cada logo real — así ningún cache (navegador o CDN delante del backend)
+// puede devolver el logo de otra clínica ni uno viejo tras resubirlo.
+// ──────────────────────────────────────────────────────────────────────────
+async function loadClinicLogo(logoPath) {
     try {
-        const abs = url.startsWith('http') ? url : (import.meta.env.VITE_API_URL || '') + url;
-        const res = await fetch(abs);
-        if (!res.ok) return null;
-        const blob = await res.blob();
+        const { data: blob } = await clienteAxios.get('/api/tenant-settings/logo', {
+            responseType: 'blob',
+            params: { v: logoPath },
+        });
         return await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload  = () => resolve({ data: reader.result, type: blob.type });
@@ -87,13 +92,15 @@ export const generarPresupuestoPDF = async (presupuesto, clinica) => {
     const mg   = 15;          // margen lateral
     const cw   = W - mg * 2;  // ancho contenido
 
-    // Precargar logo
-    const logoImg = await loadImg(clinica?.logo);
+    // Precargar logo (solo si hay uno configurado)
+    const logoImg = clinica?.logo ? await loadClinicLogo(clinica.logo) : null;
 
     // ══════════════════════════════════════════════════════════════════════════
     // HEADER — fondo blanco para impresoras B&N
     // ══════════════════════════════════════════════════════════════════════════
-    const hH = 52; // altura header
+    const hasLogo = !!logoImg;
+    const logoBlockH = hasLogo ? 22 : 0; // espacio reservado arriba para el logo centrado
+    const hH = 52 + logoBlockH; // altura header (crece si hay logo)
 
     // Fondo blanco principal
     fill(doc, C.white); doc.rect(0, 0, W, hH, 'F');
@@ -101,29 +108,33 @@ export const generarPresupuestoPDF = async (presupuesto, clinica) => {
     // Banda de acento azul en la base del header
     fill(doc, C.primary); doc.rect(0, hH - 3, W, 3, 'F');
 
-    // Línea decorativa sutil en el medio del header
+    // Línea decorativa sutil en el medio de la fila de datos (debajo del logo)
     stroke(doc, C.slate300); doc.setLineWidth(0.5);
-    doc.line(mg, hH / 2, W - mg, hH / 2);
+    doc.line(mg, logoBlockH + 26, W - mg, logoBlockH + 26);
 
-    // ── Logo de la clínica ───────────────────────────────────────────────────
-    let textStartX = mg;
-    if (logoImg) {
+    // ── Logo de la clínica — centrado arriba, tamaño chico ───────────────────
+    if (hasLogo) {
         try {
-            const logoW = 32, logoH = 26;
-            const logoX = mg, logoY = (hH - 3 - logoH) / 2;
-            // Fondo blanco con opacidad para el logo
-            fill(doc, C.white); doc.roundedRect(logoX - 1, logoY - 1, logoW + 2, logoH + 2, 2, 2, 'F');
             const fmt2 = logoImg.type.includes('png') ? 'PNG' : logoImg.type.includes('svg') ? 'SVG+XML' : 'JPEG';
+            const props = doc.getImageProperties(logoImg.data);
+            const maxW = 26, maxH = 16; // "tamaño chico"
+            const ratio = Math.min(maxW / props.width, maxH / props.height);
+            const logoW = props.width * ratio;
+            const logoH = props.height * ratio;
+            const logoX = (W - logoW) / 2; // centrado horizontal
+            const logoY = 4 + (maxH - logoH) / 2;
             doc.addImage(logoImg.data, fmt2, logoX, logoY, logoW, logoH, '', 'FAST');
-            textStartX = mg + logoW + 6;
-        } catch (_) { textStartX = mg; }
+        } catch (_) { /* si falla, seguimos sin logo */ }
     }
+
+    // Fila de datos: nombre de la clínica (izq.) y PRESUPUESTO (der.), debajo del logo
+    const rowY = logoBlockH;
 
     // ── Nombre de la clínica ─────────────────────────────────────────────────
     const clinicName = clinica?.clinic_name || 'Clínica Dental';
     color(doc, C.slate700);
     font(doc, 15, 'bold');
-    doc.text(truncate(doc, clinicName, 80), textStartX, 16);
+    doc.text(truncate(doc, clinicName, 80), mg, rowY + 16);
 
     // Datos de contacto
     font(doc, 7.5);
@@ -132,10 +143,10 @@ export const generarPresupuestoPDF = async (presupuesto, clinica) => {
     if (clinica?.phone)   contactParts.push(`Tel: ${clinica.phone}`);
     if (clinica?.email)   contactParts.push(clinica.email);
     if (clinica?.address) contactParts.push(clinica.address);
-    if (contactParts.length) doc.text(contactParts.join('  ·  '), textStartX, 23);
+    if (contactParts.length) doc.text(contactParts.join('  ·  '), mg, rowY + 23);
     if (clinica?.whatsapp) {
         color(doc, C.slate700);
-        doc.text(`WhatsApp: ${clinica.whatsapp}`, textStartX, 30);
+        doc.text(`WhatsApp: ${clinica.whatsapp}`, mg, rowY + 30);
     }
 
     // ── PRESUPUESTO — lado derecho ───────────────────────────────────────────
@@ -143,19 +154,19 @@ export const generarPresupuestoPDF = async (presupuesto, clinica) => {
 
     font(doc, 15, 'bold');
     color(doc, C.slate700);
-    doc.text('PRESUPUESTO', rightX, 16, { align: 'right' });
+    doc.text('PRESUPUESTO', rightX, rowY + 16, { align: 'right' });
 
     font(doc, 9);
     color(doc, C.slate700);
-    doc.text(`N° ${presupuesto.numero}`, rightX, 24, { align: 'right' });
+    doc.text(`N° ${presupuesto.numero}`, rightX, rowY + 24, { align: 'right' });
 
     // Badge de estado
     const badge = ESTADO_BADGE[presupuesto.estado] ?? ESTADO_BADGE.borrador;
     const badgeW = 30, badgeH = 7, badgeX = rightX - badgeW;
-    fill(doc, badge.bg); doc.roundedRect(badgeX, 28, badgeW, badgeH, 1.5, 1.5, 'F');
+    fill(doc, badge.bg); doc.roundedRect(badgeX, rowY + 28, badgeW, badgeH, 1.5, 1.5, 'F');
     color(doc, badge.text);
     font(doc, 6.5, 'bold');
-    doc.text(badge.label, badgeX + badgeW / 2, 28 + 4.8, { align: 'center' });
+    doc.text(badge.label, badgeX + badgeW / 2, rowY + 28 + 4.8, { align: 'center' });
 
     let y = hH + 5;
 

@@ -213,6 +213,11 @@ export default function ModalCreateEvent({ dateStr, dateObj, onCreate, onClose, 
   const [amount, setAmount] = useState("");
   const [isPaid, setIsPaid] = useState(false);
 
+  // 🏥 obra social del paciente seleccionado
+  const [cubiertoObraSocial, setCubiertoObraSocial] = useState(true);
+  const [montoCubiertoOS, setMontoCubiertoOS] = useState("");
+  const [montoPacienteExtra, setMontoPacienteExtra] = useState("");
+
   // ---- Buscar y seleccionar paciente ----
   const [patientQuery, setPatientQuery] = useState("");
   const [patientResults, setPatientResults] = useState([]);
@@ -272,6 +277,13 @@ export default function ModalCreateEvent({ dateStr, dateObj, onCreate, onClose, 
     };
   }, []);
 
+  // Resetear campos de obra social cuando cambia el paciente seleccionado
+  useEffect(() => {
+    setCubiertoObraSocial(true);
+    setMontoCubiertoOS("");
+    setMontoPacienteExtra("");
+  }, [selectedPatient?.id]);
+
   /**
    * Busca y normaliza resultados según el tipo.
    * Retorna items con forma: { id, name, line2, email }
@@ -308,7 +320,8 @@ export default function ModalCreateEvent({ dateStr, dateObj, onCreate, onClose, 
             const phone = u?.phon ?? "";
             // línea secundaria prioriza email, luego dni, luego phone
             const line2 = email || dni || phone || "";
-            return id ? { id, name, line2, email } : null;
+            // Laravel serializa la relación obraSocial() como "obra_social" (snake_case)
+            return id ? { id, name, line2, email, obraSocial: u?.obra_social ?? null } : null;
           } else {
             // Doctor: shape simple con id/name/specialty/email/phone
             const id = u?.id ?? null;
@@ -395,6 +408,8 @@ export default function ModalCreateEvent({ dateStr, dateObj, onCreate, onClose, 
     const end = addMinutesUTC(dateStr, time, durMin);
     const fecha = `${dateStr}T${time}:00Z`;
 
+    const tieneObraSocial = !!selectedPatient.obraSocial;
+
     const payload = {
       title: title.trim(),
       fecha,
@@ -410,11 +425,23 @@ export default function ModalCreateEvent({ dateStr, dateObj, onCreate, onClose, 
       userName: selectedPatient.name,
       // datos de cobranza
       amount: amount ? Number(amount) : null,
-      isPaid
+      isPaid,
+      // datos de obra social del paciente
+      obraSocialId: selectedPatient.obraSocial?.id ?? null,
+      cubiertoObraSocial: tieneObraSocial ? cubiertoObraSocial : null,
+      montoCubiertoOS: tieneObraSocial && !cubiertoObraSocial && montoCubiertoOS
+        ? Number(montoCubiertoOS)
+        : null,
+      montoPacienteExtra: tieneObraSocial && !cubiertoObraSocial && montoPacienteExtra
+        ? Number(montoPacienteExtra)
+        : null,
     };
 
     onCreate(payload);
-  }, [title, selectedPatient, selectedDoctor, time, duration, amount, isPaid, dateStr, onCreate]);
+  }, [
+    title, selectedPatient, selectedDoctor, time, duration, amount, isPaid, dateStr, onCreate,
+    cubiertoObraSocial, montoCubiertoOS, montoPacienteExtra,
+  ]);
 
   const isFormValid =
     title.trim() &&
@@ -679,6 +706,113 @@ export default function ModalCreateEvent({ dateStr, dateObj, onCreate, onClose, 
                 </div>
               </div>
             </div>
+
+            {/* 🏥 Obra Social del paciente seleccionado */}
+            {selectedPatient?.obraSocial && (
+              <div
+                style={{
+                  display: "grid",
+                  gap: 16,
+                  padding: "16px",
+                  background: "#f8fafc",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, color: "#6b7280" }}>
+                    Obra Social: <strong style={{ color: "#374151" }}>{selectedPatient.obraSocial.nombre}</strong>
+                  </span>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontWeight: 600, color: "#374151", fontSize: 14 }}>
+                      ¿Cubierto por la obra social?
+                    </span>
+                    <div
+                      onClick={() => setCubiertoObraSocial((p) => !p)}
+                      role="switch"
+                      aria-checked={cubiertoObraSocial}
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setCubiertoObraSocial((p) => !p)}
+                      style={{
+                        width: 52,
+                        height: 30,
+                        borderRadius: 999,
+                        background: cubiertoObraSocial ? "#22c55e" : "#ef4444",
+                        display: "flex",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        padding: 3,
+                        transition: "all 0.25s",
+                        boxShadow: "inset 0 0 0 2px rgba(0,0,0,0.05)"
+                      }}
+                      title={cubiertoObraSocial ? "Sí" : "No"}
+                    >
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          background: "#fff",
+                          transform: `translateX(${cubiertoObraSocial ? "22px" : "0"})`,
+                          transition: "all 0.25s",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.25)"
+                        }}
+                      />
+                    </div>
+                    <span style={{ color: cubiertoObraSocial ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
+                      {cubiertoObraSocial ? "Sí" : "No"}
+                    </span>
+                  </div>
+                </div>
+
+                {!cubiertoObraSocial && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <label style={{ display: "grid", gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: "#374151" }}>Monto que cubre la obra social</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="100"
+                        value={montoCubiertoOS}
+                        onChange={(e) => setMontoCubiertoOS(e.target.value)}
+                        placeholder="Ej: 3000"
+                        style={{
+                          padding: "14px 16px",
+                          borderRadius: 8,
+                          border: "2px solid #e5e7eb",
+                          fontSize: 14,
+                          outline: "none"
+                        }}
+                        onFocus={(e) => (e.target.style.borderColor = "#0ea5e9")}
+                        onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: "#374151" }}>Extra a pagar por el paciente</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="100"
+                        value={montoPacienteExtra}
+                        onChange={(e) => setMontoPacienteExtra(e.target.value)}
+                        placeholder="Ej: 2000"
+                        style={{
+                          padding: "14px 16px",
+                          borderRadius: 8,
+                          border: "2px solid #e5e7eb",
+                          fontSize: 14,
+                          outline: "none"
+                        }}
+                        onFocus={(e) => (e.target.style.borderColor = "#0ea5e9")}
+                        onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

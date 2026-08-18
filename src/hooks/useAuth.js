@@ -134,7 +134,9 @@ const UseAuth = ({ middleware, url }) => {
   useEffect(() => {
     if (loggingOut || isLoading || hasRedirectedRef.current) return;
 
-    if (middleware === 'guest' && user && location.pathname === '/auth/login') {
+    const onLoginPage = location.pathname === '/auth/login' || location.pathname.startsWith('/auth/login/');
+
+    if (middleware === 'guest' && user && onLoginPage) {
       hasRedirectedRef.current = true;
 
       if (user.role === 'superadmin') {
