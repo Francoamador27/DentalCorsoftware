@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import clienteAxios from '../../config/axios';
 
 const NotificacionWhatsapp = ({ datos, date, hora = '' }) => {
-    console.log("Datos en NotificacionWhatsapp:", date);
+    const [direccion, setDireccion] = useState('');
+
+    useEffect(() => {
+        clienteAxios.get('/api/tenant-settings')
+            .then(({ data }) => setDireccion(data?.address || ''))
+            .catch(() => setDireccion(''));
+    }, []);
 
     let mensaje = `
 Su cita ha sido agendada correctamente:
 
 📅 Fecha: ${date} ${hora} hs
-👩🏻‍💼 Profesional: ${datos?.doctor_name} 
-📍 Lugar: 24 de Septiembre 842, Córdoba, Argentina;
+👩🏻‍💼 Profesional: ${datos?.doctor_name}
+📍 Lugar: ${direccion || 'Consultá la dirección con tu clínica'};
 
 Recordatorios importantes:
 - Llegar puntualmente a su horario asignado (no es necesario llegar antes)
